@@ -1,0 +1,359 @@
+ASsi 3 - MPI(distributed Sum) - 74
+Assi 4 - Berkeley - 120
+Assi 5 - TokenRing - 171
+Assi 6 - Bully Algo - 229
+Assi 7 - Ring Algo - 290
+
+############### RMI ASSI 1 ##################
+
+1.	circleInterface.java
+
+import java.rmi.*;
+public interface circleInterface extends Remote{
+public double area(int radius) throws RemoteException;
+public double perimeter(int radius) throws RemoteException;
+}
+
+
+2.	circleImpl.java
+
+import java.rmi.*;
+import java.rmi.server.*;
+@SuppressWarnings("serial")
+public class circleImpl extends UnicastRemoteObject implements circleInterface{
+public circleImpl() throws RemoteException {
+super();
+}
+public double area(int radius) throws RemoteException {
+double pi=3.14;
+return pi*radius*radius;
+}
+public double perimeter(int radius) throws RemoteException {
+double pi=3.14;
+return 2*pi*radius;
+}
+}
+
+3.	Server.java
+
+import java.rmi.*;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+public class Server{
+public Server() throws RemoteException {
+super();
+}
+public static void main(String args[]) throws RemoteException {
+Registry reg=LocateRegistry.createRegistry (101);
+circleImpl ci=new circleImpl();
+reg.rebind("circle", ci);
+System.out.println("Server is waiting....");
+}}
+
+
+4.	Client.java
+ 
+import java.net.MalformedURLException;
+import java.rmi.*;
+import java.util.Scanner;
+public class Client{	
+public Client(){
+}
+public static void main(String args[]) throws RemoteException, MalformedURLException, NotBoundException{
+int radius;
+@SuppressWarnings("resource")
+Scanner in=new Scanner(System.in);
+System.out.println("Enter the radius of the circle");
+radius=in.nextInt();
+circleInterface c=(circleInterface) Naming.lookup("rmi://localhost:101/circle"); 
+System.out.println("The area of the circle is "+c. area(radius)); 
+System.out.println("The perimeter of the circle is "+c.perimeter(radius));
+}
+}
+
+################## MPI(Distributed System) ASSI 3 #################################
+
+import mpi.*;
+
+public class DistributedSum {
+    public static void main(String[] args) throws MPIException {
+        MPI.Init(args);
+        
+        int rank = MPI.COMM_WORLD.Rank();
+        int size = MPI.COMM_WORLD.Size();
+        int[] array = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}; // Input array
+        int n = array.length;
+        int localN = n / size; // Number of elements per processor
+        int[] localArray = new int[localN]; // Local array for each processor
+        int localSum = 0; // Local sum for each processor
+        int totalSum = 0;
+        
+        // Scatter the input array to all processors
+        MPI.COMM_WORLD.Scatter(array, 0, localN, MPI.INT, localArray, 0, localN, MPI.INT, 0);
+        
+        // Calculate the local sum for each processor
+        for (int i = 0; i < localN; i++) {
+            localSum += localArray[i];       
+        }
+
+        // Send the local sum to the master processor
+        int[] globalSum = new int[1];
+        MPI.COMM_WORLD.Reduce(new int[] {localSum}, 0, globalSum, 0, 1, MPI.INT, MPI.SUM, 0);
+        
+        // Display the intermediate sums calculated by each processor
+        System.out.println("Processor " + rank + " calculated sum = " + localSum);
+
+         if (rank == 0) {
+            totalSum = globalSum[0];
+            System.out.println("Total Sum = " + totalSum);
+        }
+        
+        MPI.Finalize();
+    }
+}
+
+Commands - 
+
+1] javac -cp .;%MPJ_HOME%/lib/mpj.jar DistributedSum.java
+2] mpjrun.bat -np 2 DistributedSum
+
+######################## Berkeley Assi 4 #############################
+
+import java.util.Date;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+
+public class berkeley_algo {
+	public static void berkeleyAlgo(String servertime, String time1, String time2) {
+        System.out.println("Server Clock   = " + servertime);
+        System.out.println("Client Clock 1 = " + time1);
+        System.out.println("Client Clock 2 = " + time2);
+        SimpleDateFormat sdf = new SimpleDateFormat("mm:ss");
+        try {
+            /* Converting time to Milliseconds */
+            long s = sdf.parse(servertime).getTime();
+            long t1 = sdf.parse(time1).getTime();
+            long t2 = sdf.parse(time2).getTime();
+            
+            /* Calculating time differences w.r.t server */
+            long st1 = t1 - s;
+            System.out.println("st1 = "+st1/1000);
+            long st2 = t2 - s;
+            System.out.println("st2 = "+st2/1000);
+            
+            /* Fault tolerant Average */
+            long aveg = (st1 + st2 + 0) / 3;
+            
+            System.out.println("Clock offset: (st1 + st2 + 0)/3 = "+aveg/1000);
+            
+            /* Adjustment */
+            long adjserver = aveg+s;
+            long adj_t1 = aveg-st1;
+            long adj_t2 = aveg-st2;
+            System.out.println("t1 adjustment = "+adj_t1/1000);
+            System.out.println("t2 adjustment = "+adj_t2/1000);
+            
+            /* sync clock */
+            System.out.println("Synchronized Server Clock  = "+sdf.format(new Date(adjserver)));
+            System.out.println("Synchronized Client1 Clock = "+sdf.format(new Date(t1+adj_t1)));
+            System.out.println("Synchronized Client2 Clock = "+sdf.format(new Date(t2+adj_t2)));
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+    }
+    public static void main(String[] args) {
+        
+        berkeleyAlgo("03:00", "02:50", "03:25");
+    }
+}
+
+
+###################### TokenRing Assig 5 #############################
+
+import java.io.*;
+import java.util.*;
+
+public class TokenRingg {
+	public static void main(String[] args) {
+		Scanner sc = new Scanner(System.in);
+		
+		System.out.println("Enter the num of nodes: ");
+		int n = sc.nextInt();
+		
+		System.out.println("Ring formed is as below: ");
+		
+		for (int i = 0; i < n; i++) {
+            System.out.print(" "+ i);
+        }
+        System.out.println(" " + 0);
+        
+        int ch = 0;
+        
+        do {
+        	System.out.print("Enter sender : ");
+    		int s = sc.nextInt();
+    		
+    		System.out.print("Enter receiver : ");
+    		int r = sc.nextInt();
+    		
+    		System.out.print("Enter data to send : ");
+    		int d = sc.nextInt();
+    		
+    		int token = 0;
+    		System.out.println("Token Passing: ");
+    		
+    		for(int i=token; i<s; i++) {
+    			System.out.print(" " + i +"->");
+    		}
+    		System.out.println(" " + s);
+    		System.out.println("Sender "+ s +" sending data: "+ d);
+    		
+    		
+    		for (int i=s; i != r; i=(i + 1)%n) {
+                System.out.println("Data " + d + " forwarded by " + i);
+            }
+            System.out.println("Receiver " + r + " received data: " + d);
+            
+            
+            token = s;
+            System.out.print("\nDo you want to send again?? Enter 1 for Yes and 0 for No : ");
+            ch = sc.nextInt();
+    		       	
+        }
+        while(ch==1);
+        
+	}
+
+}
+
+######################## Bully algor Assi 6-1 ############################
+
+//import required classes and packages  
+import java.io.*;  
+import java.util.Scanner;  
+
+//create class BullyAlgoExample to understand how bully algorithms works  
+public class BullyAlgo{  
+	   
+	 // declare variables and arrays for process and their status  
+	static int numberOfProcess;  
+	static int priorities[] = new int[100];  
+	static int status[] = new int[100];  
+	static int cord;  
+	
+	 // main() method start  
+	public static void main(String args[])throws IOException   // handle IOException  
+	{  
+		 // get input from the user for the number of processes   
+		System.out.println("Enter total number of processes:");  
+		
+		// create scanner class object to get input from user  
+		Scanner sc = new Scanner(System.in);  
+		numberOfProcess = sc.nextInt();  
+		
+		int i;  
+		
+		// use for loop to set priority and status of each process  
+		for(i = 0; i<numberOfProcess; i++)  {  
+			System.out.print("\nStatus for process "+(i+1)+": ");  
+			status[i] = sc.nextInt();  
+			System.out.print("Priority of process "+(i+1)+": ");  
+			priorities[i] = sc.nextInt();  
+		}  
+		
+		System.out.print("\nEnter process which will initiate election: ");  
+		int ele = sc.nextInt();  
+		
+		sc.close();  
+		
+		// call electProcess() method   
+		electProcess(ele);  
+		System.out.println("\nAfter electing process the final coordinator is "+cord);  
+	 }  //main
+	
+	 // create electProcess() method   
+	static void electProcess(int ele)  {  
+		ele = ele - 1;  
+		cord = ele + 1;  
+		
+		for(int i = 0; i<numberOfProcess; i++)  {  
+			if(priorities[ele]<priorities[i])  
+			{  
+				System.out.println("Election message is sent from "+(ele+1)+" to "+(i+1));  
+				if(status[i]==1)  
+					electProcess(i+1);  
+			}  
+	    }  
+	 }  
+} //class 
+
+################################ Ring Algor Assi 6-2 ##################################
+
+import java.io.*;
+import java.util.Scanner;
+ 
+public class ring{
+    static int n;
+    static int pro[] = new int[100];
+    static int status[] = new int[100];
+    static int priority[] = new int[100];
+    static int cord;
+     
+    public static void main(String args[])throws IOException
+    {
+        System.out.println("Enter the number of processes: ");
+        Scanner sc = new Scanner(System.in);
+        n = sc.nextInt();
+         
+        int i,j,k,l,m;
+         
+        for(i=0;i<n;i++)
+        {
+            System.out.println("\nFor process "+(i+1)+":");
+            System.out.print("Status: ");
+            status[i]=sc.nextInt();
+            System.out.print("Priority: ");
+            pro[i] = sc.nextInt();
+        }
+        
+        System.out.println("\nThe ring formed is: ");
+        for (i=1;i<=n;i++) {
+        	System.out.print(i + " -> ");
+        }
+        System.out.println("1");
+         
+        System.out.println("\nWhich process will initiate election? ");
+        int ele = sc.nextInt();
+         
+        elect(ele);
+        System.out.println("\nFinal co-ordinator is "+cord);
+    }
+     
+    static void elect(int ele)
+    {
+        
+        int i;
+        int index = 0;
+        int max = 0;
+        for(i=(ele-1);i<=n;i++) {
+        	if(status[i]==1) {
+        		priority[index] = pro[i];
+        		index = index + 1;
+        	}
+        }
+        for(i=0;i<=ele;i++) {
+        	if(status[i] == 1) {
+        		priority[index] = pro[i];
+        		index = index + 1;
+        	}
+        }
+        
+        for(i=0;i<=index;i++) {
+        	if(priority[i]>max) {
+        		max = priority[i];
+        	}
+        }
+        cord = max;
+    }
+}
+
